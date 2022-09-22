@@ -1,0 +1,6 @@
+<<<<<<< HEAD
+snmpd: non-standard-file-perm etc/snmp/snmpd.conf 0640 != 0644
+=======
+snmpd: non-standard-file-perm etc/snmp/snmpd.conf 0600 != 0644
+snmpd: recursive-privilege-change postinst:21
+>>>>>>> 91148b1 (Update renamed lintian tag names in lintian overrides.)
