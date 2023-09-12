@@ -33,10 +33,11 @@ cross.patch
 agent_silent_eacces
 agent_swinst_dpkg_date
 snmpd_conf_5_ro_extend
-Link-libnetsnmptrapd-against-MYSQL_LIBS.patch
 perl_makefile_man3pods
 ci_libmariadb-dev
 mib2c_perl_error
 net-snmp-create-v3-user_paths
-configure-static-linking-Fix-SSL-checks.patch
-Fix-the-build-against-OpenSSL-3.0.patch
+snmptrapd_correct_mysql_includes
+makefile_trap_needs_agent
+includes_fix_national_encoding
+configure_fix_version

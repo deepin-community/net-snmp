@@ -1,8 +1,39 @@
-net-snmp (5.9.1+dfsg-4) UNRELEASED; urgency=medium
+net-snmp (5.9.4+dfsg-1) unstable; urgency=medium
 
-  * update
+  * New upstream release
+  * snmpd: Remove dependency to lsb-base
+  * postinst use chown user:group Closes: #1032201, #1027809
 
- -- Debian SNMP Team <team+snmp@tracker.debian.org>  Tue, 21 Jun 2022 11:00:59 +0800
+ -- Craig Small <csmall@debian.org>  Sat, 19 Aug 2023 19:36:39 +1000
+
+net-snmp (5.9.3+dfsg-2) unstable; urgency=medium
+
+  [ Helmut Grohne ]
+  * Fix FTCBFS: Closes: #1025922
+    + Initialize architecture variables.
+    + Fix build vs host confusion.
+    + Use the host architecture pkg-config.
+    + export a PERL5LIB for cross building.
+    + cross.patch: Pass PERL5LIB along.
+
+  [ Debian Janitor ]
+  * Update lintian override info to new format on line 1, 2.
+  * Use secure URI in Homepage field.
+
+  [ Craig Small ]
+  * Remove email list from maintainers
+  * Add patch agent_set_null_varbind Closes: #1024020 fixes:
+    + CVE-2022-44792 NULL Pointer Exception when handling ipDefaultTTL
+    + CVE-2022-44793 NULL Pointer Exception when handling pv6IpForwarding
+
+ -- Craig Small <csmall@debian.org>  Tue, 03 Jan 2023 13:01:46 +1100
+
+net-snmp (5.9.3+dfsg-1) unstable; urgency=medium
+
+  * New upstream source
+  * Remove patch Link-libnetsnmptrapd-against-MYSQL_LIBS
+
+ -- Craig Small <csmall@debian.org>  Mon, 18 Jul 2022 21:28:38 +1000
 
 net-snmp (5.9.1+dfsg-4) unstable; urgency=medium
 
