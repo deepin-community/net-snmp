@@ -8,11 +8,11 @@
 
 #include <net-snmp/net-snmp-config.h>
 
-#ifdef TIME_WITH_SYS_TIME
+#if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
-# ifdef HAVE_SYS_TIME_H
+# if HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
 #  include <time.h>
@@ -101,7 +101,7 @@ static unsigned long ret_val;   /* Used by var_ipfwacc to return ulongs */
  * * this because stol returns a signed long. 
  */
 
-NETSNMP_STATIC_INLINE void
+static inline void
 atoip(int pos)
 {
     int             i;
@@ -256,7 +256,7 @@ var_ipfwacc(struct variable *vp,
             size_t * length,
             int exact, size_t * var_len, WriteMethod ** write_method)
 {
-    *write_method = NULL;       /* assume it isnt writable for the time being */
+    *write_method = 0;          /* assume it isnt writable for the time being */
     *var_len = sizeof(ret_val); /* assume an integer and change later if not */
 
     if (header_simple_table

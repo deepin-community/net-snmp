@@ -5,52 +5,52 @@
 #include <net-snmp/net-snmp-config.h>
 
 #include <sys/types.h>
-#ifdef HAVE_SYS_PARAM_H
+#if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#ifdef HAVE_SYS_FILE_H
+#if HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
-#ifdef HAVE_SYS_SOCKET_H
+#if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-#ifdef HAVE_SYS_SOCKIO_H
+#if HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h>
 #endif
-#ifdef HAVE_SYS_IOCTL_H
+#if HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
-#ifdef HAVE_SYS_MBUF_H
+#if HAVE_SYS_MBUF_H
 #include <sys/mbuf.h>
 #endif
 
 
-#ifdef HAVE_SYS_STREAM_H
+#if HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
-#ifdef HAVE_NET_ROUTE_H
+#if HAVE_NET_ROUTE_H
 #include <net/route.h>
 #endif
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef HAVE_ARPA_INET_H
+#if HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-#ifdef HAVE_NETDB_H
+#if HAVE_NETDB_H
 #include <netdb.h>
 #endif
 
 #include <errno.h>
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <stdio.h>
 #include <ctype.h>
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #endif
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 
@@ -102,19 +102,18 @@ int _netsnmp_ioctl_route_set_v4(netsnmp_route_entry * entry)
         return -3;
     }
 
-    memset(&dst, 0, sizeof(dst));
+    memset(&route, 0, sizeof(route));
+
     dst.sin_family = AF_INET;
     memcpy(&dst.sin_addr.s_addr, entry->rt_dest, 4);
     DEBUGSTR = inet_ntoa(dst.sin_addr);
     DEBUGMSGTL(("access:route","add route to %s\n", DEBUGSTR));
 
-    memset(&gateway, 0, sizeof(gateway));
     gateway.sin_family = AF_INET;
     memcpy(&gateway.sin_addr.s_addr, entry->rt_nexthop, 4);
     DEBUGSTR = inet_ntoa(gateway.sin_addr);
     DEBUGMSGTL(("access:route","    via %s\n", DEBUGSTR));
 
-    memset(&mask, 0, sizeof(mask));
     mask.sin_family = AF_INET;
     if (entry->rt_pfx_len != 0)
 	mask.sin_addr.s_addr = netsnmp_ipaddress_ipv4_mask(entry->rt_pfx_len);
@@ -123,7 +122,6 @@ int _netsnmp_ioctl_route_set_v4(netsnmp_route_entry * entry)
     DEBUGSTR = inet_ntoa(mask.sin_addr);
     DEBUGMSGTL(("access:route","    mask %s\n", DEBUGSTR));
 
-    memset(&route, 0, sizeof(route));
     memcpy(&route.rt_dst, &dst, sizeof(struct sockaddr_in));
     memcpy(&route.rt_gateway, &gateway, sizeof(struct sockaddr_in));
     memcpy(&route.rt_genmask, &mask, sizeof(struct sockaddr_in));
@@ -169,20 +167,17 @@ int _netsnmp_ioctl_route_delete_v4(netsnmp_route_entry * entry)
 
     memset(&route, 0, sizeof(route));
 
-    memset(&dst, 0, sizeof(dst));
     dst.sin_family = AF_INET;
     memcpy(&dst.sin_addr.s_addr, entry->rt_dest, 4);
     DEBUGSTR = inet_ntoa(dst.sin_addr);
     DEBUGMSGTL(("access:route","del route to %s\n", DEBUGSTR));
 
-    memset(&mask, 0, sizeof(mask));
     mask.sin_family = AF_INET;
     if (entry->rt_pfx_len != 0)
 	mask.sin_addr.s_addr = netsnmp_ipaddress_ipv4_mask(entry->rt_pfx_len);
     else
 	mask.sin_addr.s_addr = entry->rt_mask;
 
-    memset(&gateway, 0, sizeof(gateway));
     gateway.sin_family = AF_INET;
     memcpy(&gateway.sin_addr.s_addr, entry->rt_nexthop, 4);
 

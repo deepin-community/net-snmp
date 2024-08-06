@@ -25,67 +25,66 @@ SOFTWARE.
 ******************************************************************/
 #include <net-snmp/net-snmp-config.h>
 
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
 #endif
 #include <sys/types.h>
-#ifdef HAVE_SYS_WAIT_H
+#if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-#ifdef HAVE_SYS_SOCKET_H
+#if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-#ifdef HAVE_SYS_SOCKIO_H
+#if HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h>
 #endif
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 #include <stdio.h>
 #include <ctype.h>
 #if !defined(mingw32) && defined(HAVE_SYS_TIME_H)
 # include <sys/time.h>
-# ifdef TIME_WITH_SYS_TIME
+# if TIME_WITH_SYS_TIME
 #  include <time.h>
 # endif
 #else
 # include <time.h>
 #endif
-#ifdef HAVE_SYS_SELECT_H
+#if HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
-#ifdef HAVE_SYS_PARAM_H
+#if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#ifdef HAVE_SYSLOG_H
+#if HAVE_SYSLOG_H
 #include <syslog.h>
 #endif
-#ifdef HAVE_SYS_IOCTL_H
+#if HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
-#ifdef HAVE_NET_IF_H
+#if HAVE_NET_IF_H
 #include <net/if.h>
 #endif
-#ifdef HAVE_NETDB_H
+#if HAVE_NETDB_H
 #include <netdb.h>
 #endif
-#ifdef HAVE_ARPA_INET_H
+#if HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-#ifdef HAVE_FCNTL_H
+#if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
 
 #include <net-snmp/net-snmp-includes.h>
-#include "snmptrapd_handlers.h"
 #include "snmptrapd_log.h"
 
 
@@ -302,6 +301,11 @@ typedef enum {
       * Input Parameters:
       *    var - the parameter to reference
       */
+
+/*
+ * prototypes 
+ */
+extern const char *trap_description(int trap);
 
 static void
 init_options(options_type * options)
@@ -587,20 +591,6 @@ realloc_handle_time_fmt(u_char ** buf, size_t * buf_len, size_t * out_len,
                                    (u_char **) & safe_bfr, options);
 }
 
-static
-void convert_agent_addr(struct in_addr agent_addr, char *name, size_t size)
-{
-    const int numeric = !netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID,
-                                                NETSNMP_DS_APP_NUMERIC_IP);
-    struct sockaddr_in sin;
-
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
-    sin.sin_addr = agent_addr;
-    if (getnameinfo((struct sockaddr *)&sin, sizeof(sin), name, size, NULL, 0,
-                    numeric ? NI_NUMERICHOST : 0) < 0)
-        strlcpy(name, "?", sizeof(size));
-}
 
 static int
 realloc_handle_ip_fmt(u_char ** buf, size_t * buf_len, size_t * out_len,
@@ -623,7 +613,7 @@ realloc_handle_ip_fmt(u_char ** buf, size_t * buf_len, size_t * out_len,
       */
 {
     struct in_addr *agent_inaddr = (struct in_addr *) pdu->agent_addr;
-    char            host[16];                   /* corresponding host name */
+    struct hostent *host = NULL;       /* corresponding host name */
     char            fmt_cmd = options->cmd;     /* what we're formatting */
     u_char         *temp_buf = NULL;
     size_t          temp_buf_len = 64, temp_out_len = 0;
@@ -656,14 +646,26 @@ realloc_handle_ip_fmt(u_char ** buf, size_t * buf_len, size_t * out_len,
          * Try to resolve the agent_addr field as a hostname; fall back
          * to numerical address.  
          */
-        convert_agent_addr(*(struct in_addr *)pdu->agent_addr,
-                           host, sizeof(host));
-        if (!snmp_strcat(&temp_buf, &temp_buf_len, &temp_out_len, 1,
-                         (const u_char *)host)) {
-            if (temp_buf != NULL) {
-                free(temp_buf);
+        if (!netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID, 
+                                    NETSNMP_DS_APP_NUMERIC_IP)) {
+            host = netsnmp_gethostbyaddr((char *) pdu->agent_addr, 4, AF_INET);
+        }
+        if (host != NULL) {
+            if (!snmp_strcat(&temp_buf, &temp_buf_len, &temp_out_len, 1,
+                             (const u_char *)host->h_name)) {
+                if (temp_buf != NULL) {
+                    free(temp_buf);
+                }
+                return 0;
             }
-            return 0;
+        } else {
+            if (!snmp_strcat(&temp_buf, &temp_buf_len, &temp_out_len, 1,
+                             (u_char *)inet_ntoa(*agent_inaddr))) {
+                if (temp_buf != NULL) {
+                    free(temp_buf);
+                }
+                return 0;
+            }
         }
         break;
 
@@ -1337,7 +1339,7 @@ realloc_format_plain_trap(u_char ** buf, size_t * buf_len,
     struct tm      *now_parsed; /* time in struct format */
     char            safe_bfr[200];      /* holds other strings */
     struct in_addr *agent_inaddr = (struct in_addr *) pdu->agent_addr;
-    char host[16];                      /* host name */
+    struct hostent *host = NULL;       /* host name */
     netsnmp_variable_list *vars;        /* variables assoc with trap */
 
     if (buf == NULL) {
@@ -1364,18 +1366,36 @@ realloc_format_plain_trap(u_char ** buf, size_t * buf_len,
     /*
      * Get info about the sender.  
      */
-    convert_agent_addr(*(struct in_addr *)pdu->agent_addr, host, sizeof(host));
-    if (!snmp_strcat(buf, buf_len, out_len, allow_realloc, (u_char *)host))
-        return 0;
-    if (!snmp_strcat(buf, buf_len, out_len, allow_realloc,
-                      (const u_char *)" ["))
-        return 0;
-    if (!snmp_strcat(buf, buf_len, out_len, allow_realloc,
-                     (u_char *)inet_ntoa(*agent_inaddr)))
-        return 0;
-    if (!snmp_strcat(buf, buf_len, out_len, allow_realloc,
-                     (const u_char *)"] "))
-        return 0;
+    if (!netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID, 
+                                NETSNMP_DS_APP_NUMERIC_IP)) {
+        host = netsnmp_gethostbyaddr((char *) pdu->agent_addr, 4, AF_INET);
+    }
+    if (host != (struct hostent *) NULL) {
+        if (!snmp_strcat
+            (buf, buf_len, out_len, allow_realloc,
+             (const u_char *) host->h_name)) {
+            return 0;
+        }
+        if (!snmp_strcat
+            (buf, buf_len, out_len, allow_realloc,
+             (const u_char *) " [")) {
+            return 0;
+        }
+        if (!snmp_strcat(buf, buf_len, out_len, allow_realloc,
+                         (const u_char *) inet_ntoa(*agent_inaddr))) {
+            return 0;
+        }
+        if (!snmp_strcat
+            (buf, buf_len, out_len, allow_realloc,
+             (const u_char *) "] ")) {
+            return 0;
+        }
+    } else {
+        if (!snmp_strcat(buf, buf_len, out_len, allow_realloc,
+                         (const u_char *) inet_ntoa(*agent_inaddr))) {
+            return 0;
+        }
+    }
 
     /*
      * Append PDU transport info.  

@@ -26,39 +26,39 @@ SOFTWARE.
 ******************************************************************/
 #include <net-snmp/net-snmp-config.h>
 
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
 #endif
 #include <sys/types.h>
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif
-#ifdef TIME_WITH_SYS_TIME
+#if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
-# ifdef HAVE_SYS_TIME_H
+# if HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
 #  include <time.h>
 # endif
 #endif
-#ifdef HAVE_SYS_SELECT_H
+#if HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
 #include <stdio.h>
-#ifdef HAVE_NETDB_H
+#if HAVE_NETDB_H
 #include <netdb.h>
 #endif
-#ifdef HAVE_ARPA_INET_H
+#if HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
 
@@ -187,10 +187,8 @@ main(int argc, char *argv[])
     int             running;
     int             status = STAT_ERROR;
     int             check;
-    int             exitval = 1;
+    int             exitval = 0;
     struct timeval  tv1, tv2, tv_a, tv_b;
-
-    SOCK_STARTUP;
 
     netsnmp_ds_register_config(ASN_BOOLEAN, "snmpwalk", "includeRequested",
 			       NETSNMP_DS_APPLICATION_ID, 
@@ -221,13 +219,12 @@ main(int argc, char *argv[])
      */
     switch (arg = snmp_parse_args(argc, argv, &session, "C:", optProc)) {
     case NETSNMP_PARSE_ARGS_ERROR:
-        goto out;
+        exit(1);
     case NETSNMP_PARSE_ARGS_SUCCESS_EXIT:
-        exitval = 0;
-        goto out;
+        exit(0);
     case NETSNMP_PARSE_ARGS_ERROR_USAGE:
         usage();
-        goto out;
+        exit(1);
     default:
         break;
     }
@@ -242,7 +239,7 @@ main(int argc, char *argv[])
         rootlen = MAX_OID_LEN;
         if (snmp_parse_oid(argv[arg], root, &rootlen) == NULL) {
             snmp_perror(argv[arg]);
-            goto out;
+            exit(1);
         }
     } else {
         /*
@@ -261,13 +258,15 @@ main(int argc, char *argv[])
         end_len = MAX_OID_LEN;
         if (snmp_parse_oid(end_name, end_oid, &end_len) == NULL) {
             snmp_perror(end_name);
-            goto out;
+            exit(1);
         }
     } else {
         memmove(end_oid, root, rootlen*sizeof(oid));
         end_len = rootlen;
         end_oid[end_len-1]++;
     }
+
+    SOCK_STARTUP;
 
     /*
      * open an SNMP session 
@@ -278,7 +277,8 @@ main(int argc, char *argv[])
          * diagnose snmp_open errors with the input netsnmp_session pointer 
          */
         snmp_sess_perror("snmpwalk", &session);
-        goto out;
+        SOCK_CLEANUP;
+        exit(1);
     }
 
     /*
@@ -299,7 +299,6 @@ main(int argc, char *argv[])
     if (netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID,
                                NETSNMP_DS_WALK_TIME_RESULTS))
         netsnmp_get_monotonic_clock(&tv1);
-    exitval = 0;
     while (running) {
         /*
          * create PDU for GETNEXT request and add object name to request 
@@ -346,7 +345,6 @@ main(int argc, char *argv[])
                             && snmp_oid_compare(name, name_length,
                                                 vars->name,
                                                 vars->name_length) >= 0) {
-                            fflush(stdout);
                             fprintf(stderr, "Error: OID not increasing: ");
                             fprint_objid(stderr, name, name_length);
                             fprintf(stderr, " >= ");
@@ -429,8 +427,6 @@ main(int argc, char *argv[])
                  (double) (tv2.tv_sec - tv1.tv_sec));
     }
 
-out:
-    netsnmp_cleanup_session(&session);
     SOCK_CLEANUP;
     return exitval;
 }

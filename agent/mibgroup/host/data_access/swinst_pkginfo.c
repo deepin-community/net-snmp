@@ -42,9 +42,8 @@
 #include <net-snmp/library/container.h>
 #include <net-snmp/library/snmp_debug.h>
 #include <net-snmp/data_access/swinst.h>
-#include "swinst_private.h"
 
-netsnmp_feature_require(date_n_time);
+netsnmp_feature_require(date_n_time)
 
    /*
     * Location of package directory.
@@ -182,20 +181,18 @@ netsnmp_swinst_arch_load( netsnmp_container *container, u_int flags)
             CONTAINER_INSERT(container, entry);
 
 #ifdef HAVE_PKGINFO
-	    v = pkgparam( dp->d_name, NETSNMP_REMOVE_CONST(char *, "VERSION") );
-	    c = pkgparam( dp->d_name, NETSNMP_REMOVE_CONST(char *, "CATEGORY") );
+	    v = pkgparam( dp->d_name, "VERSION" );
+	    c = pkgparam( dp->d_name, "CATEGORY" );
 
 	    entry->swName_len = snprintf( entry->swName, sizeof(entry->swName),
 					  "%s-%s", dp->d_name, v );
 	    if (entry->swName_len >= sizeof(entry->swName))
 		entry->swName_len = sizeof(entry->swName)-1;
-	    entry->swType = (c && (NULL != strstr( c, "system")))
+	    entry->swType = (NULL != strstr( c, "system"))
 			    ? 2      /* operatingSystem */
 			    : 4;     /*  application    */
 
-	    /* pkgparam() return values must be freed. */
-	    free(c);
-	    free(v);
+	    /* Do we need to free 'v' & 'c' ??? */
 #else
 	    entry->swName_len = snprintf( entry->swName, sizeof(entry->swName),
 					  "%s", dp->d_name );

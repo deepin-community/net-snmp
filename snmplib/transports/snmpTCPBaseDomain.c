@@ -7,28 +7,32 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
 #endif
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef HAVE_SYS_SOCKET_H
+#if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef HAVE_ARPA_INET_H
+#if HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-#ifdef HAVE_FCNTL_H
+#if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#if HAVE_DMALLOC_H
+#include <dmalloc.h>
 #endif
 
 #include <net-snmp/types.h>
@@ -79,7 +83,7 @@ int netsnmp_tcpbase_recv(netsnmp_transport *t, void *buf, int size,
     return rc;
 }
 
-int netsnmp_tcpbase_send(netsnmp_transport *t, const void *buf, int size,
+int netsnmp_tcpbase_send(netsnmp_transport *t, void *buf, int size,
                          void **opaque, int *olength) {
     int rc = -1;
 

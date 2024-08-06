@@ -17,25 +17,27 @@
 
 #include <net-snmp/net-snmp-config.h>
 
+#ifdef NETSNMP_CAN_USE_NLIST
+
 #include <sys/types.h>
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <stdio.h>
 #include <errno.h>
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #endif
-#ifdef HAVE_FCNTL_H
+#if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef HAVE_KVM_H
+#if HAVE_KVM_H
 #include <kvm.h>
 #endif
 
@@ -44,8 +46,13 @@
 #include "kernel.h"
 #include <net-snmp/agent/ds_agent.h>
 
-#if defined(HAVE_KVM_H) && !defined(NETSNMP_NO_KMEM_USAGE)
-kvm_t *kd;
+#ifndef NULL
+#define NULL 0
+#endif
+
+
+#if HAVE_KVM_H
+kvm_t *kd = NULL;
 
 /**
  * Initialize the support for accessing kernel virtual memory.
@@ -57,7 +64,7 @@ init_kmem(const char *file)
 {
     int res = TRUE;
 
-#ifdef HAVE_KVM_OPENFILES
+#if HAVE_KVM_OPENFILES
     char            err[4096];
 
     kd = kvm_openfiles(NULL, NULL, NULL, O_RDONLY, err);
@@ -105,7 +112,7 @@ klookup(unsigned long off, void *target, size_t siz)
         return 0;
     result = kvm_read(kd, off, target, siz);
     if (result != siz) {
-#ifdef HAVE_KVM_OPENFILES
+#if HAVE_KVM_OPENFILES
         snmp_log(LOG_ERR, "kvm_read(*, %lx, %p, %x) = %d: %s\n", off,
                  target, (unsigned) siz, result, kvm_geterr(kd));
 #else
@@ -130,8 +137,7 @@ free_kmem(void)
     }
 }
 
-#elif defined(HAVE_NLIST_H) && !defined(__linux__) &&   \
-    !defined(NETSNMP_NO_KMEM_USAGE)
+#else                           /* HAVE_KVM_H */
 
 static off_t    klseek(off_t);
 static int      klread(char *, int);
@@ -253,15 +259,8 @@ free_kmem(void)
     }
 }
 
-#else
-int
-init_kmem(const char *file)
-{
-    return 1;  /* success */
-}
+#endif                          /* HAVE_KVM_H */
 
-void
-free_kmem(void)
-{
-}
-#endif
+#else
+int unused;	/* Suppress "empty translation unit" warning */
+#endif                          /* NETSNMP_CAN_USE_NLIST */

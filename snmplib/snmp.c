@@ -45,7 +45,7 @@ SOFTWARE.
 #else
 #include <strings.h>
 #endif
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 #ifdef HAVE_SYS_SELECT_H
@@ -53,6 +53,10 @@ SOFTWARE.
 #endif
 #ifndef NULL
 #define NULL 0
+#endif
+
+#if HAVE_DMALLOC_H
+#include <dmalloc.h>
 #endif
 
 #ifdef vms
@@ -74,7 +78,7 @@ SOFTWARE.
    incomplete, but when combined with the manual page set and
    tutorials forms a pretty comprehensive starting point.
 
-   @section Starting_out Starting out
+   @section Starting out
 
    The best places to start learning are the @e Net-SNMP @e tutorial
    (http://www.Net-SNMP.org/tutorial-5/) and the @e Modules and @e
@@ -88,11 +92,6 @@ xdump(const void * data, size_t length, const char *prefix)
     const u_char * const cp = (const u_char*)data;
     int                  col, count;
     char                *buffer;
-#ifndef NETSNMP_DISABLE_DYNAMIC_LOG_LEVEL
-    int      debug_log_level = netsnmp_get_debug_log_level();
-#else
-#define debug_log_level LOG_DEBUG
-#endif /* NETSNMP_DISABLE_DYNAMIC_LOG_LEVEL */
 
     buffer = (char *) malloc(strlen(prefix) + 80);
     if (!buffer) {
@@ -123,10 +122,10 @@ xdump(const void * data, size_t length, const char *prefix)
         }
         buffer[col + 60] = '\n';
         buffer[col + 60 + 1] = 0;
-        snmp_log(debug_log_level, "%s", buffer);
+        snmp_log(LOG_DEBUG, "%s", buffer);
         count += col;
     }
-    snmp_log(debug_log_level, "\n");
+    snmp_log(LOG_DEBUG, "\n");
     free(buffer);
 
 }                               /* end xdump() */

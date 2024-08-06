@@ -12,16 +12,16 @@
 
 #include "mibII/mibII_common.h"
 
-#ifdef HAVE_NETINET_TCP_H
+#if HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
 #endif
-#ifdef HAVE_NETINET_TCP_TIMER_H
+#if HAVE_NETINET_TCP_TIMER_H
 #include <netinet/tcp_timer.h>
 #endif
-#ifdef HAVE_NETINET_TCPIP_H
+#if HAVE_NETINET_TCPIP_H
 #include <netinet/tcpip.h>
 #endif
-#ifdef HAVE_NETINET_TCP_VAR_H
+#if HAVE_NETINET_TCP_VAR_H
 #include <netinet/tcp_var.h>
 #endif
 
@@ -120,7 +120,6 @@ _load(netsnmp_container *container, u_int load_flags)
 #if defined(dragonfly)
     struct xinpcb  *xig = NULL;
     int      StateMap[] = { 1, 1, 2, 3, 4, 5, 8, 6, 10, 9, 7, 11 };
-    int      i, count;
 #else
     struct xinpgen *xig = NULL;
     int      StateMap[] = { 1, 2, 3, 4, 5, 8, 6, 10, 9, 7, 11 };
@@ -147,14 +146,13 @@ _load(netsnmp_container *container, u_int load_flags)
      */
 #if defined(dragonfly)
     xig = (struct xinpcb  *) tcpcb_buf;
-    count = len/sizeof(NS_ELEM);
 #else
     xig = (struct xinpgen *) tcpcb_buf;
     xig = (struct xinpgen *) ((char *) xig + xig->xig_len);
 #endif
 
 #if defined(dragonfly)
-    for (i = 0; i < count; i++)
+    while (xig && (xig->xi_len > sizeof(struct xinpcb)))
 #else
     while (xig && (xig->xig_len > sizeof(struct xinpgen)))
 #endif
@@ -165,11 +163,7 @@ _load(netsnmp_container *container, u_int load_flags)
 #else
 	xig = (struct xinpgen *) ((char *) xig + xig->xig_len);
 #endif
-#if __FreeBSD_version >= 1200026
-	state = StateMap[pcb.t_state];
-#else
 	state = StateMap[pcb.xt_tp.t_state];
-#endif
 
 	if (load_flags) {
 	    if (state == TCPCONNECTIONSTATE_LISTEN) {
@@ -187,11 +181,7 @@ _load(netsnmp_container *container, u_int load_flags)
 	}
 
 #if !defined(NETSNMP_ENABLE_IPV6)
-#ifdef INP_ISIPV6
-	if (INP_ISIPV6(&pcb.xt_inp))
-#else
 	if (pcb.xt_inp.inp_vflag & INP_IPV6)
-#endif
 	    continue;
 #endif
 
@@ -208,11 +198,7 @@ _load(netsnmp_container *container, u_int load_flags)
         entry->pid = 0;
         
         /** the addr string may need work */
-#ifdef INP_ISIPV6
-	if (INP_ISIPV6(&pcb.xt_inp)) {
-#else
 	if (pcb.xt_inp.inp_vflag & INP_IPV6) {
-#endif
 	    entry->loc_addr_len = entry->rmt_addr_len = 16;
 	    memcpy(entry->loc_addr, &pcb.xt_inp.in6p_laddr, 16);
 	    memcpy(entry->rmt_addr, &pcb.xt_inp.in6p_faddr, 16);
@@ -229,8 +215,6 @@ _load(netsnmp_container *container, u_int load_flags)
         entry->arbitrary_index = CONTAINER_SIZE(container) + 1;
         CONTAINER_INSERT(container, entry);
     }
-
-    free(tcpcb_buf);
 
     if(rc<0)
         return rc;

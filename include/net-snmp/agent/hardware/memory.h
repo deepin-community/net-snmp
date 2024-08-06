@@ -10,7 +10,6 @@ typedef struct netsnmp_memory_info_s netsnmp_memory_info;
 #define NETSNMP_MEM_TYPE_SHARED   8
 #define NETSNMP_MEM_TYPE_SHARED2  9
 #define NETSNMP_MEM_TYPE_SWAP    10
-#define NETSNMP_MEM_TYPE_AVAILMEM 11
     /* Leave space for individual swap devices */
 #define NETSNMP_MEM_TYPE_MAX     30
 
@@ -38,4 +37,3 @@ netsnmp_memory_info *netsnmp_memory_get_next_byIdx(int,int );
 
 netsnmp_cache *netsnmp_memory_get_cache( void );
 int netsnmp_memory_load( void );
-int netsnmp_mem_arch_load(netsnmp_cache *cache, void *magic);

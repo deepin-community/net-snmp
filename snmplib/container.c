@@ -7,11 +7,6 @@
  * Copyright (C) 2007 Apple, Inc. All rights reserved.
  * Use is subject to license terms specified in the COPYING file
  * distributed with the Net-SNMP package.
- *
- * Portions of this file are copyrighted by:
- * Copyright (c) 2016 VMware, Inc. All rights reserved.
- * Use is subject to license terms specified in the COPYING file
- * distributed with the Net-SNMP package.
  */
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-features.h>
@@ -20,27 +15,24 @@
 #include <net-snmp/library/container_binary_array.h>
 #include <net-snmp/library/container_list_ssll.h>
 #include <net-snmp/library/container_null.h>
-#include "factory.h"
 
-#include <stdint.h>
+netsnmp_feature_child_of(container_all, libnetsnmp)
 
-netsnmp_feature_child_of(container_all, libnetsnmp);
+netsnmp_feature_child_of(container_factories, container_all)
+netsnmp_feature_child_of(container_types, container_all)
+netsnmp_feature_child_of(container_compare, container_all)
+netsnmp_feature_child_of(container_dup, container_all)
+netsnmp_feature_child_of(container_free_all, container_all)
+netsnmp_feature_child_of(subcontainer_find, container_all)
 
-netsnmp_feature_child_of(container_factories, container_all);
-netsnmp_feature_child_of(container_types, container_all);
-netsnmp_feature_child_of(container_compare, container_all);
-netsnmp_feature_child_of(container_dup, container_all);
-netsnmp_feature_child_of(container_free_all, container_all);
-netsnmp_feature_child_of(subcontainer_find, container_all);
+netsnmp_feature_child_of(container_ncompare_cstring, container_compare)
+netsnmp_feature_child_of(container_compare_mem, container_compare)
+netsnmp_feature_child_of(container_compare_long, container_compare)
+netsnmp_feature_child_of(container_compare_ulong, container_compare)
+netsnmp_feature_child_of(container_compare_int32, container_compare)
+netsnmp_feature_child_of(container_compare_uint32, container_compare)
 
-netsnmp_feature_child_of(container_ncompare_cstring, container_compare);
-netsnmp_feature_child_of(container_compare_mem, container_compare);
-netsnmp_feature_child_of(container_compare_long, container_compare);
-netsnmp_feature_child_of(container_compare_ulong, container_compare);
-netsnmp_feature_child_of(container_compare_int32, container_compare);
-netsnmp_feature_child_of(container_compare_uint32, container_compare);
-
-netsnmp_feature_child_of(container_find_factory, container_factories);
+netsnmp_feature_child_of(container_find_factory, container_factories)
 
 /** @defgroup container container
  */
@@ -212,10 +204,8 @@ netsnmp_container_find_factory(const char *type_list)
         return NULL;
 
     list = strdup(type_list);
-    if (!list)
-        return NULL;
     entry = strtok_r(list, ":", &st);
-    while (entry) {
+    while(entry) {
         f = netsnmp_container_get_factory(entry);
         if (NULL != f)
             break;
@@ -252,10 +242,8 @@ netsnmp_container_find_ct(const char *type_list)
         return NULL;
 
     list = strdup(type_list);
-    if (!list)
-        return NULL;
     entry = strtok_r(list, ":", &st);
-    while (entry) {
+    while(entry) {
         ct = netsnmp_container_get_ct(entry);
         if (NULL != ct)
             break;
@@ -285,15 +273,7 @@ netsnmp_container_get(const char *type)
     return NULL;
 }
 
-/**
- * Allocate a new container of a given type.
- *
- * @param type A colon-separated string with the container name, followed by
- * a colon-separated list of container types.
- *
- * Creates a new container. The type of the container is the first type
- * mentioned in @type for which a factory has been registered with
- * netsnmp_container_register_with_compare() or netsnmp_container_register().
+/*------------------------------------------------------------------
  */
 netsnmp_container *
 netsnmp_container_find(const char *type)
@@ -302,16 +282,13 @@ netsnmp_container_find(const char *type)
     netsnmp_container *c = ct ? (netsnmp_container *)(ct->factory->produce()) : NULL;
 
     /*
-     * provide default compare and ncompare
+     * provide default compare
      */
     if (c) {
         if (ct->compare)
             c->compare = ct->compare;
         else if (NULL == c->compare)
             c->compare = netsnmp_compare_netsnmp_index;
-
-        if (NULL == c->ncompare)
-            c->ncompare = netsnmp_ncompare_netsnmp_index;
     }
 
     return c;
@@ -337,6 +314,10 @@ netsnmp_container_add_index(netsnmp_container *primary,
     new_index->prev = curr;
 }
 
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the inline version in
+ * container.h. If you change one, change them both.
+ */
 int CONTAINER_INSERT_HELPER(netsnmp_container* x, const void* k)
 {
     while(x && x->insert_filter && x->insert_filter(x,k) == 1)
@@ -356,6 +337,10 @@ int CONTAINER_INSERT_HELPER(netsnmp_container* x, const void* k)
     return 0;
 }
 
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the inline version in
+ * container.h. If you change one, change them both.
+ */
 int CONTAINER_INSERT(netsnmp_container* x, const void* k)
 {
     /** start at first container */
@@ -364,24 +349,10 @@ int CONTAINER_INSERT(netsnmp_container* x, const void* k)
     return CONTAINER_INSERT_HELPER(x, k);
 }
 
-int CONTAINER_INSERT_BEFORE(netsnmp_container *x, size_t pos, void *k)
-{
-    int rc = 0;
-
-    if (NULL == x || NULL == x->insert_before) {
-        snmp_log(LOG_ERR, "container '%s' does not support insert_before\n",
-                 x && x->container_name ? x->container_name : "");
-        return -1;
-    }
-
-    rc = x->insert_before(x, pos, k);
-    if (rc < 0)
-        snmp_log(LOG_ERR, "error on container '%s' insert_before %" NETSNMP_PRIz "d (%d)\n",
-                 x->container_name ? x->container_name : "", pos, rc);
-
-    return rc;
-}
-
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the inline version in
+ * container.h. If you change one, change them both.
+ */
 int CONTAINER_REMOVE(netsnmp_container *x, const void *k)
 {
     int rc2, rc = 0;
@@ -403,56 +374,10 @@ int CONTAINER_REMOVE(netsnmp_container *x, const void *k)
     return rc;
 }
 
-int CONTAINER_REMOVE_AT(netsnmp_container *x, size_t pos, void **k)
-{
-    int rc = 0;
-    netsnmp_container *orig = x;
-
-    if (NULL == x || NULL == x->remove_at) {
-        snmp_log(LOG_ERR, "container '%s' does not support REMOVE_AT\n",
-                 x && x->container_name ? x->container_name : "");
-        return -1;
-    }
-
-    /** start at given container */
-    rc = x->remove_at(x, pos, k);
-    if (rc < 0) {
-        snmp_log(LOG_ERR, "error on container '%s' remove_at %" NETSNMP_PRIz "d (%d)\n",
-                 x->container_name ? x->container_name : "", pos, rc);
-        return rc;
-    } else if (NULL == k || NULL == *k)
-        return rc;
-
-    /** remove k from any other containers */
-    while(x->prev)
-        x = x->prev;
-    for(; x; x = x->next) {
-        if (x == orig)
-            continue;
-        x->remove(x,*k); /** ignore remove errors in other containers */
-    }
-    return rc;
-}
-
-int CONTAINER_GET_AT(netsnmp_container *x, size_t pos, void **k)
-{
-    int rc = 0;
-
-    if (NULL == x || NULL == x->get_at) {
-        snmp_log(LOG_ERR, "container '%s' does not support GET_AT\n",
-                 x && x->container_name ? x->container_name : "");
-        return -1;
-    }
-
-    /** start at given container */
-    rc = x->get_at(x, pos, k);
-    if (rc < 0)
-        snmp_log(LOG_ERR, "error on container '%s' get_at %" NETSNMP_PRIz "d (%d)\n",
-                 x->container_name ? x->container_name : "", pos, rc);
-
-    return rc;
-}
-
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the function version in
+ * container.c. If you change one, change them both.
+ */
 #ifndef NETSNMP_FEATURE_REMOVE_CONTAINER_DUP
 netsnmp_container *CONTAINER_DUP(netsnmp_container *x, void *ctx, u_int flags)
 {
@@ -465,13 +390,14 @@ netsnmp_container *CONTAINER_DUP(netsnmp_container *x, void *ctx, u_int flags)
 }
 #endif /* NETSNMP_FEATURE_REMOVE_CONTAINER_DUP */
 
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the inline version in
+ * container.h. If you change one, change them both.
+ */
 int CONTAINER_FREE(netsnmp_container *x)
 {
     int  rc2, rc = 0;
-
-    if (!x)
-        return rc;
-
+        
     /** start at last container */
     while(x->next)
         x = x->next;
@@ -493,6 +419,10 @@ int CONTAINER_FREE(netsnmp_container *x)
     return rc;
 }
 
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the function version in
+ * container.c. If you change one, change them both.
+ */
 /*
  * clear all containers. When clearing the *first* container, and
  * *only* the first container, call the function f for each item.
@@ -524,6 +454,10 @@ void CONTAINER_FREE_ALL(netsnmp_container *x, void *c)
 #endif /* NETSNMP_FEATURE_REMOVE_CONTAINER_FREE_ALL */
 
 #ifndef NETSNMP_FEATURE_REMOVE_SUBCONTAINER_FIND
+/*------------------------------------------------------------------
+ * These functions should EXACTLY match the function version in
+ * container.c. If you change one, change them both.
+ */
 /*
  * Find a sub-container with the given name
  */
@@ -596,62 +530,64 @@ netsnmp_container_data_dup(netsnmp_container *dup, netsnmp_container *c)
  *
  */
 int
-netsnmp_compare_netsnmp_index(const void *lhs_arg, const void *rhs_arg)
+netsnmp_compare_netsnmp_index(const void *lhs, const void *rhs)
 {
-    const netsnmp_index *lhs = lhs_arg;
-    const netsnmp_index *rhs = rhs_arg;
     int rc;
-
-    netsnmp_assert(lhs && rhs);
+    netsnmp_assert((NULL != lhs) && (NULL != rhs));
     DEBUGIF("compare:index") {
         DEBUGMSGT(("compare:index", "compare "));
-        DEBUGMSGSUBOID(("compare:index", lhs->oids, lhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) lhs)->oids,
+                     ((const netsnmp_index *) lhs)->len));
         DEBUGMSG(("compare:index", " to "));
-        DEBUGMSGSUBOID(("compare:index", rhs->oids, rhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) rhs)->oids,
+                     ((const netsnmp_index *) rhs)->len));
         DEBUGMSG(("compare:index", "\n"));
     }
-    rc = snmp_oid_compare(lhs->oids, lhs->len, rhs->oids, rhs->len);
+    rc = snmp_oid_compare(((const netsnmp_index *) lhs)->oids,
+                          ((const netsnmp_index *) lhs)->len,
+                          ((const netsnmp_index *) rhs)->oids,
+                          ((const netsnmp_index *) rhs)->len);
     DEBUGMSGT(("compare:index", "result was %d\n", rc));
     return rc;
 }
 
 int
-netsnmp_ncompare_netsnmp_index(const void *lhs_arg, const void *rhs_arg)
+netsnmp_ncompare_netsnmp_index(const void *lhs, const void *rhs)
 {
-    const netsnmp_index *lhs = lhs_arg;
-    const netsnmp_index *rhs = rhs_arg;
     int rc;
-
-    netsnmp_assert(lhs && rhs);
+    netsnmp_assert((NULL != lhs) && (NULL != rhs));
     DEBUGIF("compare:index") {
         DEBUGMSGT(("compare:index", "compare "));
-        DEBUGMSGSUBOID(("compare:index", lhs->oids, lhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) lhs)->oids,
+                     ((const netsnmp_index *) lhs)->len));
         DEBUGMSG(("compare:index", " to "));
-        DEBUGMSGSUBOID(("compare:index", rhs->oids, rhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) rhs)->oids,
+                     ((const netsnmp_index *) rhs)->len));
         DEBUGMSG(("compare:index", "\n"));
     }
-    rc = snmp_oid_ncompare(lhs->oids, lhs->len, rhs->oids, rhs->len, rhs->len);
+    rc = snmp_oid_ncompare(((const netsnmp_index *) lhs)->oids,
+                           ((const netsnmp_index *) lhs)->len,
+                           ((const netsnmp_index *) rhs)->oids,
+                           ((const netsnmp_index *) rhs)->len,
+                           ((const netsnmp_index *) rhs)->len);
     DEBUGMSGT(("compare:index", "result was %d\n", rc));
     return rc;
 }
 
 int
-netsnmp_compare_cstring(const void *lhs_arg, const void *rhs_arg)
+netsnmp_compare_cstring(const void * lhs, const void * rhs)
 {
-    const container_type *lhs = lhs_arg;
-    const container_type *rhs = rhs_arg;
-
-    return strcmp(lhs->name, rhs->name);
+    return strcmp(((const container_type*)lhs)->name,
+                  ((const container_type*)rhs)->name);
 }
 
 #ifndef NETSNMP_FEATURE_REMOVE_CONTAINER_NCOMPARE_CSTRING
 int
-netsnmp_ncompare_cstring(const void *lhs_arg, const void *rhs_arg)
+netsnmp_ncompare_cstring(const void * lhs, const void * rhs)
 {
-    const container_type *lhs = lhs_arg;
-    const container_type *rhs = rhs_arg;
-
-    return strncmp(lhs->name, rhs->name, strlen(rhs->name));
+    return strncmp(((const container_type*)lhs)->name,
+                   ((const container_type*)rhs)->name,
+                   strlen(((const container_type*)rhs)->name));
 }
 #endif /* NETSNMP_FEATURE_REMOVE_CONTAINER_NCOMPARE_CSTRING */
 
@@ -774,5 +710,5 @@ netsnmp_container_simple_free(void *data, void *context)
     DEBUGMSGTL(("verbose:container",
                 "netsnmp_container_simple_free) called for %p/%p\n",
                 data, context));
-    free(data); /* SNMP_FREE wasted on param */
+    free((void*)data); /* SNMP_FREE wasted on param */
 }

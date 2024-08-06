@@ -7,14 +7,14 @@
 #include <net-snmp/net-snmp-features.h>
 
 #include <stdio.h>
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_MALLOC_H
+#if HAVE_MALLOC_H
 #include <malloc.h>
 #endif
 #include <sys/types.h>
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
@@ -28,18 +28,17 @@
 #include <net-snmp/library/snmp_assert.h>
 
 #include <net-snmp/library/container_list_ssll.h>
-#include "factory.h"
 
-netsnmp_feature_child_of(container_linked_list, container_types);
-netsnmp_feature_child_of(container_fifo, container_types);
-netsnmp_feature_child_of(container_lifo, container_types);
+netsnmp_feature_child_of(container_linked_list, container_types)
+netsnmp_feature_child_of(container_fifo, container_types)
+netsnmp_feature_child_of(container_lifo, container_types)
 
 /* this is a fancy way of cleaning up ifdefs */
 #ifdef NETSNMP_FEATURE_REQUIRE_CONTAINER_FIFO
-netsnmp_feature_require(container_linked_list);
+netsnmp_feature_require(container_linked_list)
 #endif /* NETSNMP_FEATURE_REQUIRE_CONTAINER_FIFO */
 #ifdef NETSNMP_FEATURE_REQUIRE_CONTAINER_LIFO
-netsnmp_feature_require(container_linked_list);
+netsnmp_feature_require(container_linked_list)
 #endif /* NETSNMP_FEATURE_REQUIRE_CONTAINER_LIFO */
 
 #ifndef NETSNMP_FEATURE_REMOVE_CONTAINER_LINKED_LIST
@@ -70,33 +69,37 @@ static netsnmp_iterator *_ssll_iterator_get(netsnmp_container *c);
 
 
 static void *
-_get(netsnmp_container *c, const void *key, int return_next)
+_get(netsnmp_container *c, const void *key, int exact)
 {
-    sl_container *sl = (sl_container *)c;
-    sl_node *curr = sl->head;
+    sl_container *sl = (sl_container*)c;
+    sl_node  *curr = sl->head;
     int rc = 0;
-
-    /* If the key is NULL, return the first item in the container. */
-    if (!key)
-        return curr ? curr->data : NULL;
-
-    for ( ; curr; curr = curr->next) {
-        rc = sl->c.compare(curr->data, key);
-        if (rc < 0)
-            continue;
-        if (rc == 0) {
-            if (return_next)
-                curr = curr->next;
-            break;
+    
+    /*
+     * note: get-next on unsorted list is meaningless. we
+     * don't try to search whole array, looking for the next highest.
+     */
+    if( (NULL != curr) && (NULL != key)) {
+        while (curr) {
+            rc = sl->c.compare(curr->data, key);
+            if (rc == 0)
+                break;
+            else if (rc > 0) {
+                if (0 == sl->unsorted) {
+                    /*
+                     * if sorted, we can stop.
+                     */
+                    break;
+                }
+            }
+            curr = curr->next;
         }
-        if (!sl->unsorted) {
-            /* If sorted, we can stop. */
-            if (!return_next)
-                curr = NULL;
-            break;
+        
+        if((curr) && (!exact) && (rc == 0)) {
+            curr = curr->next;
         }
     }
-
+    
     return curr ? curr->data : NULL;
 }
 
@@ -120,7 +123,7 @@ _ssll_find(netsnmp_container *c, const void *data)
     if((NULL == c) || (NULL == data))
         return NULL;
 
-    return _get(c, data, 0);
+    return _get(c, data, 1);
 }
 
 static void *
@@ -129,22 +132,20 @@ _ssll_find_next(netsnmp_container *c, const void *data)
     if(NULL == c)
         return NULL;
 
-    return _get(c, data, 1);
+    return _get(c, data, 0);
 }
 
 static int
 _ssll_insert(netsnmp_container *c, const void *data)
 {
     sl_container *sl = (sl_container*)c;
-    sl_node  *new_node, *curr;
+    sl_node  *new_node, *curr = sl->head;
     
-    if (c == NULL)
+    if(NULL == c)
         return -1;
-
-    curr = sl->head;
-
+    
     new_node = SNMP_MALLOC_TYPEDEF(sl_node);
-    if (new_node == NULL)
+    if(NULL == new_node)
         return -1;
     new_node->data = NETSNMP_REMOVE_CONST(void *, data);
     ++sl->count;
@@ -207,15 +208,11 @@ static int
 _ssll_remove(netsnmp_container *c, const void *data)
 {
     sl_container *sl = (sl_container*)c;
-    sl_node  *curr;
+    sl_node  *curr = sl->head;
     
-    if (c == NULL)
+    if((NULL == c) || (NULL == curr))
         return -1;
-
-    curr = sl->head;
-    if (curr == NULL)
-        return -1;
-
+    
     /*
      * special case for NULL data, act like stack
      */
@@ -336,8 +333,20 @@ netsnmp_container_get_ssll(void)
     sl->c.for_each = _ssll_for_each;
     sl->c.clear = _ssll_clear;
 
-    return &sl->c;
+       
+    return (netsnmp_container*)sl;
 }
+
+netsnmp_factory *
+netsnmp_container_get_ssll_factory(void)
+{
+    static netsnmp_factory f = {"sorted_singly_linked_list",
+                                (netsnmp_factory_produce_f*)
+                                netsnmp_container_get_ssll };
+    
+    return &f;
+}
+
 
 netsnmp_container *
 netsnmp_container_get_usll(void)
@@ -372,26 +381,37 @@ netsnmp_container_get_fifo(void)
     return netsnmp_container_get_singly_linked_list(1);
 }
 
+netsnmp_factory *
+netsnmp_container_get_usll_factory(void)
+{
+    static netsnmp_factory f = {"unsorted_singly_linked_list-lifo",
+                                (netsnmp_factory_produce_f*)
+                                netsnmp_container_get_usll };
+    
+    return &f;
+}
+
+netsnmp_factory *
+netsnmp_container_get_fifo_factory(void)
+{
+    static netsnmp_factory f = {"unsorted_singly_linked_list-fifo",
+                                (netsnmp_factory_produce_f*)
+                                netsnmp_container_get_fifo };
+    
+    return &f;
+}
+
 void
 netsnmp_container_ssll_init(void)
 {
-    static netsnmp_factory ssll = {
-        "sorted_singly_linked_list",
-        netsnmp_container_get_ssll
-    };
-    static netsnmp_factory usll = {
-        "unsorted_singly_linked_list-lifo",
-        netsnmp_container_get_usll
-    };
-    static netsnmp_factory fifo = {
-        "unsorted_singly_linked_list-fifo",
-        netsnmp_container_get_fifo
-    };
-
-    netsnmp_container_register("sorted_singly_linked_list", &ssll);
-    netsnmp_container_register("unsorted_singly_linked_list", &usll);
-    netsnmp_container_register("lifo", &usll);
-    netsnmp_container_register("fifo", &fifo);
+    netsnmp_container_register("sorted_singly_linked_list",
+                               netsnmp_container_get_ssll_factory());
+    netsnmp_container_register("unsorted_singly_linked_list",
+                               netsnmp_container_get_usll_factory());
+    netsnmp_container_register("lifo",
+                               netsnmp_container_get_usll_factory());
+    netsnmp_container_register("fifo",
+                               netsnmp_container_get_fifo_factory());
 }
 
 
@@ -470,8 +490,11 @@ _ssll_iterator_last(ssll_iterator *it)
     if (NULL == n)
         return NULL;
 
-    while (n->next)
+    while(n->next)
         n = n->next;
+
+    if (NULL == n)
+        return NULL;
 
     it->last = n;
 

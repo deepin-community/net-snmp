@@ -1,9 +1,11 @@
 ---
 include:
-  - https://salsa.debian.org/salsa-ci-team/pipeline/raw/master/salsa-ci.yml
-  - https://salsa.debian.org/salsa-ci-team/pipeline/raw/master/pipeline-jobs.yml
+  - https://salsa.debian.org/salsa-ci-team/pipeline/raw/master/recipes/debian.yml
 
-# net-snmp never seems to have a reproducible build
-reprotest:
-  allow_failure: true
-
+variables:
+  RELEASE: 'buster'
+  SALSA_CI_DISABLE_REPROTEST: 1
+  SALSA_CI_DISABLE_LINTIAN: 1
+  # as of buster some CPPFLAGS (-D_FORTIFY_SOURCE) and LDFLAGS
+  # (-Wl,-z,relro -Wl,-z,now) are missing
+  SALSA_CI_DISABLE_BLHC: 1

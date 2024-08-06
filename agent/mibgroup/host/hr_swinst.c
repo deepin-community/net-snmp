@@ -6,31 +6,31 @@
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-features.h>
 
-#ifdef HAVE_SYS_PARAM_H
+#if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 #include <sys/stat.h>
-#ifdef TIME_WITH_SYS_TIME
+#if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
-# ifdef HAVE_SYS_TIME_H
+# if HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
 #  include <time.h>
 # endif
 #endif
-#ifdef HAVE_DIRENT_H
+#if HAVE_DIRENT_H
 #include <dirent.h>
 #else
 # define dirent direct
-# ifdef HAVE_SYS_NDIR_H
+# if HAVE_SYS_NDIR_H
 #  include <sys/ndir.h>
 # endif
-# ifdef HAVE_SYS_DIR_H
+# if HAVE_SYS_DIR_H
 #  include <sys/dir.h>
 # endif
-# ifdef HAVE_NDIR_H
+# if HAVE_NDIR_H
 #  include <ndir.h>
 # endif
 #endif
@@ -60,7 +60,7 @@
 #endif
 #endif
 
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
@@ -72,7 +72,7 @@
 
 #define HRSWINST_MONOTONICALLY_INCREASING
 
-netsnmp_feature_require(date_n_time);
+netsnmp_feature_require(date_n_time)
 
         /*********************
 	 *
@@ -102,7 +102,7 @@ netsnmp_feature_require(date_n_time);
  *      de_p                    swi->swi_dep
  */
 typedef struct {
-#ifdef HAVE_LIBRPM
+#if HAVE_LIBRPM
     char           *swi_directory;
 #else
     const char     *swi_directory;
@@ -110,7 +110,7 @@ typedef struct {
     char            swi_name[SNMP_MAXPATH];     /* XXX longest file name */
     int             swi_index;
 
-#ifdef HAVE_LIBRPM
+#if HAVE_LIBRPM
     const char     *swi_dbpath;
 
     time_t          swi_timestamp;      /* modify time on database */
@@ -141,13 +141,18 @@ int             header_hrswInstEntry(struct variable *, oid *, size_t *,
 	 *  Initialisation & common implementation functions
 	 *
 	 *********************/
-static void     Init_HR_SWInst(void);
-static int      Get_Next_HR_SWInst(void);
-static void     End_HR_SWInst(void);
-static int      Save_HR_SW_info(int ix);
+extern void     Init_HR_SWInst(void);
+extern int      Get_Next_HR_SWInst(void);
+extern void     End_HR_SWInst(void);
+extern int      Save_HR_SW_info(int ix);
 
+#ifdef HAVE_LIBRPM
 static void     Mark_HRSW_token(void);
 static void     Release_HRSW_token(void);
+#else
+#define	Mark_HRSW_token()
+#define	Release_HRSW_token()
+#endif
 
 
 #define	HRSWINST_CHANGE		1
@@ -412,7 +417,7 @@ var_hrswinst(struct variable * vp,
             else
                 long_return = 0;        /* predates this agent */
         } else
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
             return NULL;
 #else
             long_return = 363136200;
@@ -516,7 +521,7 @@ var_hrswinst(struct variable * vp,
                     goto err;
             } else {
 err:
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
                 ret = NULL;
 #else
                 sprintf(string, "back in the mists of time");
@@ -700,6 +705,7 @@ Save_HR_SW_info(int ix)
     return 0;
 }
 
+#ifdef	HAVE_LIBRPM
 void
 Mark_HRSW_token(void)
 {
@@ -708,15 +714,14 @@ Mark_HRSW_token(void)
 void
 Release_HRSW_token(void)
 {
-#ifdef	HAVE_LIBRPM
     SWI_t          *swi = &_myswi;      /* XXX static for now */
     if (swi != NULL && swi->swi_h) {
         headerFree(swi->swi_h);
         swi->swi_h = NULL;
         swi->swi_prevx = -1;
     }
-#endif                          /* HAVE_LIBRPM */
 }
+#endif                          /* HAVE_LIBRPM */
 
 void
 End_HR_SWInst(void)

@@ -16,46 +16,46 @@
  */
 
 #include <net-snmp/net-snmp-config.h>
-#ifdef HAVE_STDLIB_H
+#if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 #include <fcntl.h>
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
 #include <sys/param.h>
 #include <ctype.h>
-#ifdef HAVE_SYS_PSTAT_H
+#if HAVE_SYS_PSTAT_H
 #include <sys/pstat.h>
 #endif
-#ifdef HAVE_SYS_USER_H
+#if HAVE_SYS_USER_H
 #ifdef solaris2
 #include <libgen.h>
 #define _KMEMUSER
 #endif
 #include <sys/user.h>
 #endif
-#ifdef HAVE_SYS_PROC_H
+#if HAVE_SYS_PROC_H
 #include <sys/proc.h>
 #endif
-#ifdef HAVE_KVM_H
+#if HAVE_KVM_H
 #include <kvm.h>
 #endif
-#ifdef HAVE_SYS_SYSCTL_H
+#if HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
 #endif
-#if defined(HAVE_DIRENT_H) && !defined(cygwin)
+#if HAVE_DIRENT_H && !defined(cygwin)
 #include <dirent.h>
 #else
 # define dirent direct
-# ifdef HAVE_SYS_NDIR_H
+# if HAVE_SYS_NDIR_H
 #  include <sys/ndir.h>
 # endif
-# ifdef HAVE_SYS_DIR_H
+# if HAVE_SYS_DIR_H
 #  include <sys/dir.h>
 # endif
-# ifdef HAVE_NDIR_H
+# if HAVE_NDIR_H
 #  include <ndir.h>
 # endif
 #endif
@@ -70,7 +70,7 @@
 #include <procfs.h>
 #endif
 
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
@@ -122,9 +122,9 @@ static int      LowProcIndex;
 #if defined(hpux10) || defined(hpux11)
 struct pst_status *proc_table;
 struct pst_dynamic pst_dyn;
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
 struct kinfo_proc2 *proc_table;
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
 struct kinfo_proc *proc_table;
 #elif defined(solaris2)
 int            *proc_table;
@@ -283,23 +283,33 @@ void
 init_hr_swrun(void)
 {
 #ifdef cygwin
+    OSVERSIONINFO   ver;
     HMODULE         h;
 
-    if ((h = LoadLibrary("psapi.dll")) != NULL) {
-        myEnumProcessModules =
-            (ENUMPROCESSMODULES) GetProcAddress(h,
-                                                "EnumProcessModules");
-        myGetModuleFileNameEx =
-            (GETMODULEFILENAME) GetProcAddress(h,
-                                               "GetModuleFileNameExA");
-        myGetProcessMemoryInfo =
-            (GETPROCESSMEMORYINFO) GetProcAddress(h,
-                                                  "GetProcessMemoryInfo");
-        if (myEnumProcessModules && myGetModuleFileNameEx)
-            query = CW_GETPINFO_FULL;
-        else
-            snmp_log(LOG_ERR, "hr_swrun failed NT init\n");
-    } elif ((h = GetModuleHandle("KERNEL32.DLL")) != NULL) {
+    memset(&ver, 0, sizeof ver);
+    ver.dwOSVersionInfoSize = sizeof ver;
+    GetVersionEx(&ver);
+
+    if (ver.dwPlatformId == VER_PLATFORM_WIN32_NT) {
+        h = LoadLibrary("psapi.dll");
+        if (h) {
+            myEnumProcessModules =
+                (ENUMPROCESSMODULES) GetProcAddress(h,
+                                                    "EnumProcessModules");
+            myGetModuleFileNameEx =
+                (GETMODULEFILENAME) GetProcAddress(h,
+                                                   "GetModuleFileNameExA");
+            myGetProcessMemoryInfo =
+                (GETPROCESSMEMORYINFO) GetProcAddress(h,
+                                                      "GetProcessMemoryInfo");
+            if (myEnumProcessModules && myGetModuleFileNameEx)
+                query = CW_GETPINFO_FULL;
+            else
+                snmp_log(LOG_ERR, "hr_swrun failed NT init\n");
+        } else
+            snmp_log(LOG_ERR, "hr_swrun failed to load psapi.dll\n");
+    } else {
+        h = GetModuleHandle("KERNEL32.DLL");
         myCreateToolhelp32Snapshot =
             (CREATESNAPSHOT) GetProcAddress(h, "CreateToolhelp32Snapshot");
         myProcess32First =
@@ -311,7 +321,7 @@ init_hr_swrun(void)
             && myProcess32Next)
 #if 0
             /*
-             * This doesn't work at all on Win98 SE
+             * This doesn't work after all on Win98 SE 
              */
             query = CW_GETPINFO_FULL;
 #else
@@ -634,7 +644,7 @@ var_hrswrun(struct variable * vp,
 
     switch (vp->magic) {
     case HRSWRUN_OSINDEX:
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
         return NULL;
 #else
         /* 
@@ -680,21 +690,21 @@ var_hrswrun(struct variable * vp,
         cp = strchr(string, ' ');
         if (cp != NULL)
             *cp = '\0';
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         strlcpy(string, proc_table[LowProcIndex].p_comm, sizeof(string));
         /* process name: truncate the string at the first space */
         cp = strchr(string, ' ');
         if (cp != NULL)
             *cp = '\0';
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     #if defined(freebsd5) && __FreeBSD_version >= 500014
-        strlcpy(string, proc_table[LowProcIndex].ki_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].ki_comm);
     #elif defined(dragonfly) && __DragonFly_version >= 190000
-        strlcpy(string, proc_table[LowProcIndex].kp_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].kp_comm);
     #elif defined(openbsd5)
-        strlcpy(string, proc_table[LowProcIndex].p_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].p_comm);
     #else
-        strlcpy(string, proc_table[LowProcIndex].kp_proc.p_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].kp_proc.p_comm);
     #endif
 #elif defined(linux)
 	if( (cp=get_proc_name_from_status(pid,buf,sizeof(buf))) == NULL ) {
@@ -702,7 +712,7 @@ var_hrswrun(struct variable * vp,
             *var_len = strlen(string);
             return (u_char *) string;
         }
-        strlcpy(string, cp, sizeof(string));
+        strcpy(string, cp);
 #elif defined(cygwin)
         /* if (lowproc.process_state & (PID_ZOMBIE | PID_EXITED)) */
         if (lowproc.process_state & PID_EXITED || (lowproc.exitcode & ~0xffff))
@@ -711,7 +721,7 @@ var_hrswrun(struct variable * vp,
             cygwin_conv_to_posix_path(lowproc.progname, string);
             cp = strrchr(string, '/');
             if (cp)
-                strlcpy(string, cp + 1, sizeof(string));
+                strcpy(string, cp + 1);
         } else if (query == CW_GETPINFO_FULL) {
             DWORD           n = lowproc.dwProcessId & 0xffff;
             HANDLE          h =
@@ -729,7 +739,7 @@ var_hrswrun(struct variable * vp,
                                              sizeof string)) {
                     cp = strrchr(string, '\\');
                     if (cp)
-                        strlcpy(string, cp + 1, sizeof(string));
+                        strcpy(string, cp + 1);
                 } else
                     strcpy(string, "*** unknown");
                 CloseHandle(h);
@@ -743,7 +753,7 @@ var_hrswrun(struct variable * vp,
         if (cp > string && strcasecmp(cp, ".exe") == 0)
             *cp = '\0';
 #else
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
         return NULL;
 #endif
         sprintf(string, "process name");
@@ -785,7 +795,7 @@ var_hrswrun(struct variable * vp,
 #elif defined(solaris2)
 #ifdef _SLASH_PROC_METHOD_
         if (proc_buf)
-            strlcpy(string, proc_buf->pr_psargs, sizeof(string));
+            strcpy(string, proc_buf->pr_psargs);
         else
             sprintf(string, "<exited>");
         cp = strchr(string, ' ');
@@ -803,26 +813,26 @@ var_hrswrun(struct variable * vp,
         cp = strchr(string, ' ');
         if (cp != NULL)
             *cp = '\0';
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         /* Should be path, but this is not available, just use argv[0] again */
         strlcpy(string, proc_table[LowProcIndex].p_comm, sizeof(string));
         cp = strchr(string, ' ');
         if (cp != NULL)
             *cp = '\0';
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     #if defined(freebsd5) && __FreeBSD_version >= 500014
-        strlcpy(string, proc_table[LowProcIndex].ki_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].ki_comm);
     #elif defined(dragonfly) && __DragonFly_version >= 190000
-        strlcpy(string, proc_table[LowProcIndex].kp_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].kp_comm);
     #elif defined(openbsd5)
-        strlcpy(string, proc_table[LowProcIndex].p_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].p_comm);
     #else
-        strlcpy(string, proc_table[LowProcIndex].kp_proc.p_comm, sizeof(string));
+        strcpy(string, proc_table[LowProcIndex].kp_proc.p_comm);
     #endif
 #elif defined(linux)
         cp = get_proc_name_from_cmdline(pid,buf,sizeof(buf)-1);
         if (cp != NULL && *cp)    /* argv[0] '\0' argv[1] '\0' .... */
-            strlcpy(string, cp, sizeof(string));
+            strcpy(string, cp);
         else {
             /*
              * swapped out - no cmdline 
@@ -832,7 +842,7 @@ var_hrswrun(struct variable * vp,
 		*var_len = strlen(string);
 		return (u_char *) string;
 	    }
-            strlcpy(string, cp, sizeof(string));
+            strcpy(string, cp);
         }
 #elif defined(cygwin)
         /* if (lowproc.process_state & (PID_ZOMBIE | PID_EXITED)) */
@@ -859,7 +869,7 @@ var_hrswrun(struct variable * vp,
         } else
             strcpy(string, "* unknown");
 #else
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
         return NULL;
 #endif
         sprintf(string, "/bin/wombat");
@@ -890,7 +900,7 @@ var_hrswrun(struct variable * vp,
         if (proc_buf) {
             cp = strchr(proc_buf->pr_psargs, ' ');
             if (cp)
-                strlcpy(string, cp + 1, sizeof(string));
+                strcpy(string, cp + 1);
             else
                 string[0] = 0;
         } else
@@ -901,7 +911,7 @@ var_hrswrun(struct variable * vp,
             cp++;
         if (*cp == ' ')
             cp++;
-        strlcpy(string, cp, sizeof(string));
+        strcpy(string, cp);
 #endif
 #elif defined(aix4) || defined(aix5) || defined(aix6) || defined(aix7)
         cp = strchr(proc_table[LowProcIndex].pi_comm, ' ');
@@ -910,7 +920,7 @@ var_hrswrun(struct variable * vp,
             sprintf(string, "%s", cp);
         } else
             string[0] = '\0';
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         string[0] = 0;
         argv = kvm_getargv2(kd, proc_table + LowProcIndex, sizeof(string));
         if (argv)
@@ -921,7 +931,7 @@ var_hrswrun(struct variable * vp,
             strcat(string, *argv);
             argv++;
         }
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
         string[0] = 0;
         argv = kvm_getargv(kd, proc_table + LowProcIndex, sizeof(string));
         if (argv)
@@ -962,11 +972,11 @@ var_hrswrun(struct variable * vp,
         while (*cp)
             ++cp;
         ++cp;
-        strlcpy(string, cp, sizeof(string));
+        strcpy(string, cp);
 #elif defined(cygwin)
         string[0] = 0;
 #else
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
         return NULL;
 #endif
         sprintf(string, "-h -q -v");
@@ -988,12 +998,12 @@ var_hrswrun(struct variable * vp,
 			long_return = 2;	/* kernel process */
 		} else
 			long_return = 4;	/* application */
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         if (proc_table[LowProcIndex].p_flag & P_SYSTEM)
 	    long_return = 2;	/* operatingSystem */
 	else
 	    long_return = 4;	/* application */
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     #if defined(freebsd5) && __FreeBSD_version >= 500014
 	if (proc_table[LowProcIndex].ki_flag & P_SYSTEM) {
 	    if (proc_table[LowProcIndex].ki_pri.pri_class == PRI_ITHD)
@@ -1050,9 +1060,9 @@ var_hrswrun(struct variable * vp,
             break;
         }
 #else
-#ifdef HAVE_KVM_GETPROC2
+#if HAVE_KVM_GETPROC2
         switch (proc_table[LowProcIndex].p_stat) {
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     #if defined(freebsd5) && __FreeBSD_version >= 500014
         switch (proc_table[LowProcIndex].ki_stat) {
     #elif defined(dragonfly) && __DragonFly_version >= 190000
@@ -1147,11 +1157,11 @@ var_hrswrun(struct variable * vp,
 #else
         long_return = proc_buf->p_utime * 100 + proc_buf->p_stime * 100;
 #endif
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         long_return = proc_table[LowProcIndex].p_uticks +
             proc_table[LowProcIndex].p_sticks +
             proc_table[LowProcIndex].p_iticks;
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     #if defined(NOT_DEFINED) && defined(freebsd5) && __FreeBSD_version >= 500014
         /* XXX: Accessing ki_paddr causes sig10 ...
         long_return = proc_table[LowProcIndex].ki_paddr->p_uticks +
@@ -1267,12 +1277,12 @@ var_hrswrun(struct variable * vp,
 #endif
 #elif defined(aix4) || defined(aix5) || defined(aix6) || defined(aix7)
         long_return = proc_table[LowProcIndex].pi_size * getpagesize() / 1024;
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         long_return = proc_table[LowProcIndex].p_vm_tsize +
             proc_table[LowProcIndex].p_vm_ssize +
             proc_table[LowProcIndex].p_vm_dsize;
         long_return = long_return * (getpagesize() / 1024);
-#elif defined(HAVE_KVM_GETPROCS) && !defined(darwin8)
+#elif HAVE_KVM_GETPROCS && !defined(darwin8)
   #if defined(NOT_DEFINED) && defined(freebsd5) && __FreeBSD_version >= 500014
 	    /* XXX
 	    long_return = proc_table[LowProcIndex].ki_vmspace->vm_tsize +
@@ -1331,7 +1341,7 @@ var_hrswrun(struct variable * vp,
             }
         }
 #else
-#ifdef NETSNMP_NO_DUMMY_VALUES
+#if NETSNMP_NO_DUMMY_VALUES
         return NULL;
 #endif
         long_return = 16 * 1024;        /* XXX - 16M! */
@@ -1542,7 +1552,7 @@ Init_HR_SWRun(void)
 			proc_table = realloc(proc_table, avail * sizeof(proc_table[0]));
 		}
     }
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
     {
         if (kd == NULL) {
             nproc = 0;
@@ -1550,7 +1560,7 @@ Init_HR_SWRun(void)
         }
         proc_table = kvm_getproc2(kd, KERN_PROC_ALL, 0, sizeof (struct kinfo_proc2), &nproc);
     }
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     {
         if (kd == NULL) {
             nproc = 0;
@@ -1576,7 +1586,7 @@ Init_HR_SWRun(void)
     bytes = nproc * sizeof(struct proc);
 
     if (proc_table)
-        free(proc_table);
+        free((char *) proc_table);
     if ((proc_table = (struct proc *) malloc(bytes)) == NULL) {
         nproc = 0;
         snmp_log_perror("Init_HR_SWRun-malloc");
@@ -1610,10 +1620,10 @@ Get_Next_HR_SWRun(void)
         return proc_table[current_proc_entry++].pst_pid;
 #elif defined(solaris2)
         return proc_table[current_proc_entry++];
-#elif defined(HAVE_KVM_GETPROC2)
+#elif HAVE_KVM_GETPROC2
         if (proc_table[current_proc_entry].p_stat != 0)
             return proc_table[current_proc_entry++].p_pid;
-#elif defined(HAVE_KVM_GETPROCS)
+#elif HAVE_KVM_GETPROCS
     #if defined(freebsd5) && __FreeBSD_version >= 500014
         if (proc_table[current_proc_entry].ki_stat != 0)
             return proc_table[current_proc_entry++].ki_pid;

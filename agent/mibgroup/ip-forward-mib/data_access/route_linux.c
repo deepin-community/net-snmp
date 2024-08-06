@@ -15,8 +15,6 @@
 #include "ip-forward-mib/data_access/route_ioctl.h"
 #include "ip-forward-mib/inetCidrRouteTable/inetCidrRouteTable_constants.h"
 #include "if-mib/data_access/interface_ioctl.h"
-#include "route.h"
-#include "route_private.h"
 
 static int
 _type_from_flags(unsigned int flags)
@@ -69,7 +67,7 @@ _load_ipv4(netsnmp_container* container, u_long *index )
         return -2;
     }
 
-    NETSNMP_IGNORE_RESULT(fgets(line, sizeof(line), in)); /* skip header */
+    fgets(line, sizeof(line), in); /* skip header */
 
     while (fgets(line, sizeof(line), in)) {
         char            rtent_name[32];
@@ -97,7 +95,9 @@ _load_ipv4(netsnmp_container* container, u_long *index )
             snmp_log(LOG_ERR,
                      "/proc/net/route data format error (%d!=8), line ==|%s|",
                      rc, line);
-            goto free_entry;
+            
+            netsnmp_access_route_entry_free(entry);        
+            continue;
         }
 
         /*
@@ -112,12 +112,9 @@ _load_ipv4(netsnmp_container* container, u_long *index )
          * but since that will open/close a socket, and we might
          * have a lot of routes, call the ioctl routine directly.
          */
-        if ('*' != name[0]) {
+        if ('*' != name[0])
             entry->if_index =
                 netsnmp_access_interface_ioctl_ifindex_get(fd,name);
-            if (entry->if_index == 0)
-                goto free_entry;
-        }
 
         /*
          * arbitrary index
@@ -187,8 +184,8 @@ _load_ipv4(netsnmp_container* container, u_long *index )
         if (CONTAINER_INSERT(container, entry) < 0)
         {
             DEBUGMSGTL(("access:route:container", "error with route_entry: insert into container failed.\n"));
-free_entry:
             netsnmp_access_route_entry_free(entry);
+            continue;
         }
     }
 
@@ -218,6 +215,7 @@ _load_ipv6(netsnmp_container* container, u_long *index )
         return -2;
     }
     
+    fgets(line,sizeof(line),in); /* skip header */
     while (fgets(line, sizeof(line), in)) {
         char            c_name[IFNAMSIZ+1];
         char            c_dest[33], c_src[33], c_next[33];

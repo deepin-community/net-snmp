@@ -13,16 +13,16 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_STRING_H
+#if HAVE_STRING_H
 #include <string.h>
 #else
 #include <strings.h>
 #endif
-#ifdef TIME_WITH_SYS_TIME
+#if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
-# ifdef HAVE_SYS_TIME_H
+# if HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
 #  include <time.h>
@@ -32,8 +32,11 @@
 #include <netinet/in.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_DMALLOC_H
+#include <dmalloc.h>
 #endif
 
 #include <net-snmp/types.h>
@@ -50,8 +53,8 @@
 
 #include <net-snmp/library/transform_oids.h>
 
-netsnmp_feature_child_of(usm_support, libnetsnmp);
-netsnmp_feature_child_of(usm_lcd_time, usm_support);
+netsnmp_feature_child_of(usm_support, libnetsnmp)
+netsnmp_feature_child_of(usm_lcd_time, usm_support)
 
 #ifndef NETSNMP_FEATURE_REMOVE_USM_LCD_TIME
 
@@ -541,7 +544,7 @@ hash_engineID(const u_char * engineID, u_int engineID_len)
 void
 dump_etimelist_entry(Enginetime e, int count)
 {
-    size_t          buflen;
+    u_int           buflen;
     char            tabs[SNMP_MAXBUF], *t = tabs, *s;
 
 
@@ -553,9 +556,13 @@ dump_etimelist_entry(Enginetime e, int count)
 
 
     buflen = e->engineID_len;
+#ifdef NETSNMP_ENABLE_TESTING_CODE
     if (!(s = dump_snmpEngineID(e->engineID, &buflen))) {
+#endif
         binary_to_hex(e->engineID, e->engineID_len, &s);
+#ifdef NETSNMP_ENABLE_TESTING_CODE
     }
+#endif
 
     DEBUGMSGTL(("dump_etimelist", "%s\n", tabs));
     DEBUGMSGTL(("dump_etimelist", "%s%s (len=%d) <%d,%d>\n", tabs,
