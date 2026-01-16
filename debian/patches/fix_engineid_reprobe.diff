@@ -2,11 +2,11 @@ Description: Fix engineID reprobe
  Do not probe for engineID when we already know it
 Author: Net-SNMP Packaging Team <pkg-net-snmp-devel@lists.alioth.debian.org>
 Reviewed-by: Craig Small <csmall@debian.org>
-Last-Updated: 2023-08-19
+Last-Updated: 2025-12-23
 --- a/snmplib/snmpusm.c
 +++ b/snmplib/snmpusm.c
-@@ -3694,6 +3694,11 @@
-     netsnmp_pdu    *pdu = NULL, *response = NULL;
+@@ -3756,6 +3756,11 @@
+     struct usmUser **user;
      int status, i;
  
 +    if (slp->session->securityEngineIDLen != 0) {
@@ -14,6 +14,6 @@ Last-Updated: 2023-08-19
 +        return SNMPERR_SUCCESS;
 +    }
 +
-     if (usm_build_probe_pdu(&pdu) != 0) {
+     user = session->flags & SNMP_FLAGS_SESSION_USER ? &session->sessUser : NULL;
+     if (usm_build_probe_pdu(&pdu, user) != 0) {
          DEBUGMSGTL(("snmp_api", "unable to create probe PDU\n"));
-         return SNMP_ERR_GENERR;

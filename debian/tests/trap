@@ -1,23 +1,30 @@
 #!/bin/sh
+# autopkgtest check: Start a trap daemon
 
 set -e
 
-FIFO=/tmp/trap
+WORKDIR=$(mktemp -d)
+chgrp Debian-snmp "$WORKDIR"
+FIFO="${WORKDIR}/fifo"
+trap 'rm -rf $WORKDIR' 0 INT QUIT ABRT PIPE TERM
+cd "$WORKDIR"
 
-rm -f $FIFO # for easier re-runs
-mkfifo -m660 $FIFO
-chgrp Debian-snmp $FIFO
+rm -f "$FIFO" # for easier re-runs
+mkfifo -m660 "$FIFO"
+chgrp Debian-snmp "$FIFO"
 
 cat >/etc/snmp/snmptrapd.conf <<EOF
-disableAuthorization yes
+authCommunity log,execute,net public 127.0.0.1
 traphandle default tee $FIFO
 EOF
 
 CANARY=45678
+# needs a reload to re-read file?
+systemctl reload snmptrapd
 
 snmptrap -v 2c -c public 127.0.0.1 '' .1.3.6.1.6.3.1.1.5.$CANARY
 
-traplog=$(timeout 10 cat $FIFO || true)
+traplog=$(timeout 10 cat "$FIFO" || true)
 
 if printf "%s\n" "$traplog" | grep "\.$CANARY$" >/dev/null ; then
     printf "%s\n" "$traplog"

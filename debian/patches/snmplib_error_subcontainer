@@ -6,10 +6,10 @@ Author: Pik Master <pikmaster@wp.pl>
 Origin: upstream, http://sourceforge.net/p/net-snmp/patches/1322/
 Bug-Debian: https://bugs.debian.org/684721
 Reviewed-by: Craig Small <csmall@debian.org>
-Last-Update: 2019-10-10
+Last-Update: 2023-12-23
 --- a/snmplib/container.c
 +++ b/snmplib/container.c
-@@ -344,8 +344,8 @@
+@@ -341,8 +341,8 @@
      if(x) {
          int rc = x->insert(x,k);
          if(rc)

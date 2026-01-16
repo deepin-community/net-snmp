@@ -4,10 +4,10 @@ Description: Make snmpd pidfile word-readable
 Author: Craig Small <csmall@debian.org>
 Bug-Debian: https://bugs.debian.org/528103
 Reviewed-by: Craig Small <csmall@debian.org>
-Last-Update: 2019-04-30
+Last-Update: 2025-12-23
 --- a/agent/snmpd.c
 +++ b/agent/snmpd.c
-@@ -946,7 +946,7 @@
+@@ -955,7 +955,7 @@
           * already exists.
           */
          unlink(pid_file);

@@ -29,7 +29,7 @@ snmpcmd_1_groff
 netsnmp_mib_api_3_groff
 snmplib_error_subcontainer
 apps_makefile_use_ldflags
-cross.patch
+#cross.patch
 agent_silent_eacces
 agent_swinst_dpkg_date
 snmpd_conf_5_ro_extend
@@ -40,4 +40,4 @@ net-snmp-create-v3-user_paths
 snmptrapd_correct_mysql_includes
 makefile_trap_needs_agent
 includes_fix_national_encoding
-configure_fix_version
+manpages-no-C-font

@@ -1,3 +1,33 @@
+net-snmp (5.9.5.2+dfsg-2) unstable; urgency=medium
+
+  * libsnmp-dev now depends on libnl-route-3-dev Closes: #1124219
+  * Add autopkgtest for above
+
+ -- Craig Small <csmall@debian.org>  Tue, 30 Dec 2025 09:59:12 +1100
+
+net-snmp (5.9.5.2+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed a critical vulnerability in snmptrapd triggered by a specially
+      crafted trap CVE-2025-68615 Closes: #1123861
+  * Remove patches linux_systemstats as upstream applied
+  * Library, soname 40 -> 45
+  * Updated example snmpd.conf
+
+ -- Craig Small <csmall@debian.org>  Wed, 24 Dec 2025 17:25:02 +1100
+
+net-snmp (5.9.4+dfsg-2) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * d/control: Generalize hurd/linux conditions, thus adding hurd-amd64
+    support.
+
+  [ Craig Small ]
+  * Update systemstats_linux to get expected header length Closes: #1069087
+  * build-dep on pkgconf not pkg-config
+
+ -- Craig Small <csmall@debian.org>  Tue, 06 May 2025 19:12:50 +1000
+
 net-snmp (5.9.4+dfsg-1) unstable; urgency=medium
 
   * New upstream release

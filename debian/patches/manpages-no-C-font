@@ -1,0 +1,19 @@
+Description: Manpages no font C
+ Running a groff checker over most manpages gives the warning:
+ troff:<standard input>:552: warning: cannot select font 'C'
+ .
+ This is due to the \fC macros, change it to \fI
+Author: Craig Small <csmall@debian.org>
+Origin: Debian
+Forwarded: no
+Reviewed-by: Craig Small <csmall@debian.org>
+Last-Update: 2025-12-24
+--- a/sedscript.in
++++ b/sedscript.in
+@@ -107,3 +107,6 @@
+ s#PREMOVEMESCMD#PSCMD#g
+ s#AREMOVEMEGENTX_SOCKET#AGENTX_SOCKET#g
+ s#NREMOVEMEETSNMP_TEMP_FILE_PATTERN#NETSNMP_TEMP_FILE_PATTERN#g
++
++# Debian - font C doesn't exist
++s#\\fC#\\fI#g

@@ -1,6 +1,10 @@
+Description: Fix build sys for cross patching
+ Use pkg-config for mysql libraries and correct perl paths
+Reviewed-by: <name and email of a reviewer, optional>
+Last-Update: 2025-12-23
 --- a/configure.d/config_os_libs2
 +++ b/configure.d/config_os_libs2
-@@ -546,12 +546,16 @@
+@@ -632,12 +632,16 @@
  ##
  #   mysql
  ##
@@ -22,7 +26,7 @@
    _libs="${LIBS}"
    _cppflags="${CPPFLAGS}"
    LIBS="${LIBS} ${MYSQL_LIBS}"
-@@ -593,9 +597,9 @@
+@@ -679,9 +683,9 @@
    CPPFLAGS="${_cppflags}"
    LIBS="${_libs}"
    AC_MSG_CACHE_ADD(MYSQL Trap Logging:         enabled)
@@ -34,9 +38,9 @@
  AC_SUBST(MYSQL_LIBS)
  AC_SUBST(MYSQL_INCLUDES)
  
---- net-snmp-5.9.3+dfsg.orig/Makefile.in
-+++ net-snmp-5.9.3+dfsg/Makefile.in
-@@ -186,7 +186,7 @@
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -187,7 +187,7 @@
  	if false; then							\
  	    carp=-MCarp::Always;					\
  	fi &&								\

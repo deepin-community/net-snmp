@@ -3,10 +3,10 @@ Description: Makefile add correct flags
 Author: Craig Small <csmall@debian.org>
 Bug: https://github.com/net-snmp/net-snmp/issues/29
 Reviewed-by: Craig Small <csmall@debian.org>
-Last-Update: 2023-08-19
+Last-Update: 2023-12-23
 --- a/Makefile.in
 +++ b/Makefile.in
-@@ -114,7 +114,7 @@
+@@ -115,7 +115,7 @@
  # local build rules
  #
  sedscript: $(srcdir)/sedscript.in include/net-snmp/net-snmp-config.h $(srcdir)/agent/mibgroup/mibdefs.h

@@ -1,0 +1,33 @@
+#!/bin/sh
+# autopkgtest check: Build and run a program against net-snmp agent library
+# Checking headers and net-snmp-config file are installed correctly
+
+set -e
+
+WORKDIR=$(mktemp -d)
+trap "rm -rf $WORKDIR" 0 INT QUIT ABRT PIPE TERM
+cd $WORKDIR
+cat <<EOF > agent-test.c
+
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/net-snmp-includes.h>
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+#include <assert.h>
+
+int main(int argc, char *argv[])
+{
+    netsnmp_session session, *ss;
+
+    assert(2 == snmp_parse_args(argc, argv, &session, NULL, NULL));
+    assert(NULL != (ss = snmp_open(&session)));
+    assert(0 < netsnmp_get_agent_uptime());
+    netsnmp_cleanup_session(&session);
+    return 0;
+}
+EOF
+
+gcc -o agent-test agent-test.c `net-snmp-config --agent-libs`
+echo "build: OK"
+[ -x agent-test ]
+./agent-test localhost
+echo "run: OK"

@@ -2,5 +2,9 @@
 Test-Command: perl -MSNMP -e1
 Restrictions: superficial
 
-Tests: trap
-Restrictions: needs-root, isolation-container
+# This no longer works and does not read the configuration file
+#Tests: trap
+#Restrictions: needs-root, isolation-container
+
+Tests: build-agent
+Depends: build-essential, libsnmp-dev

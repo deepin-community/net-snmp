@@ -1,0 +1,1 @@
+libsnmp45: hardening-no-relro usr/lib/*/libnetsnmptrapd.so.*
