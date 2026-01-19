@@ -1,2 +1,0 @@
-libsnmp40t64: hardening-no-relro usr/lib/*/libnetsnmptrapd.so.*
-libsnmp40t64: package-name-doesnt-match-sonames libsnmp40
