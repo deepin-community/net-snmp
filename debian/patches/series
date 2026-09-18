@@ -43,3 +43,4 @@ includes_fix_national_encoding
 configure_fix_version
 linux_systemstats
 snmptrapd_trapoid_length
+CVE-2026-89147.patch
