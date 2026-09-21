@@ -1,3 +1,11 @@
+net-snmp (5.9.4+dfsg-2+deb13u1deepin3) unstable; urgency=medium
+
+  * fix(cve): CVE-2026-89147 (high) - snmpd: SMUX: Make accepted peer
+    connection handshake non-blocking.
+    Upstream: https://github.com/net-snmp/net-snmp/commit/ad843e83da1c229847ae7884dc08311fad680389
+
+ -- deepin-ci-robot <packages@deepin.org>  Fri, 18 Sep 2026 11:45:45 +0800
+
 net-snmp (5.9.4+dfsg-2+deb13u1deepin2) unstable; urgency=medium
 
   * Rebuild with LTO enabled (dpkg vendor feature optimize/lto).
